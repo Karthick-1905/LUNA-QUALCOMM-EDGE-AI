@@ -33,4 +33,5 @@ backend/assests/audio/xtts_modified_audio.wav
 *.sw?
 
 /**/__pycache__/*
-
+backend/.venv
+/**/config.yaml
