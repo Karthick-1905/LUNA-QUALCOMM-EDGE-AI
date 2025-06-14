@@ -7,9 +7,6 @@ import { HomePage } from './pages';
 import EditorLayout from './pages/EditorLayout';
 import { VideoView, TranscriptView, ExportView } from './pages/editor';
 
-// Components
-import Navigation from './components/layout/Navigation';
-
 // Configuration
 import { ROUTES } from './config/routes';
 
@@ -18,9 +15,8 @@ const AppContent = () => {
   const [isNavOpen, setIsNavOpen] = useState(false);
     // Hide navigation on editor page to keep it fullscreen
   const hideNavigation = location.pathname.startsWith(ROUTES.EDITOR);
-
   return (
-    <div className="h-screen bg-zinc-950 text-neutral-100 flex overflow-hidden">
+    <div className={`bg-zinc-950 text-neutral-100 flex ${hideNavigation ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* {!hideNavigation && (
         <AnimatePresence>
           <Navigation 
@@ -33,7 +29,7 @@ const AppContent = () => {
       {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ${
         !hideNavigation && isNavOpen ? 'ml-64' : 'ml-0'
-      }`}>        <Routes>
+      }`}><Routes>
           {/* Home Route */}
           <Route path={ROUTES.HOME} element={<HomePage />} />
           

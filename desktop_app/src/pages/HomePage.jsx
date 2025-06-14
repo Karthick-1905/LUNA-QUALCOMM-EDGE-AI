@@ -1,233 +1,229 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { useNavigate } from "react-router-dom"
-import { ROUTES } from "../config/routes"
-import logoImage from "../assets/logo.jpg"
+import React, { forwardRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { twMerge } from "tailwind-merge";
+import { clsx } from "clsx";
+import {
+  Zap,
+  Menu,
+  Check,
+  Shield,
+  Users,
+  BarChart3,
+  Star,
+  Twitter,
+  Linkedin,
+  Github,
+  Mail,
+} from "lucide-react";
+import { ROUTES } from "../config/routes";
 
-// Note:
-// Make sure the font you're using supports all the variable properties. 
-// React Bits does not take responsibility for the fonts used
-
-const HomePage = () => {
-  const navigate = useNavigate()
-
-  const handleOpenFromLocal = () => {
-    navigate(ROUTES.EDITOR + "?import=video")
-  }
-
-  const features = [
-    {
-      icon: "🎵",
-      title: "Professional Audio Editing",
-      description: "Advanced waveform editing with precision controls",
-    },
-    {
-      icon: "🎙️",
-      title: "Podcast Optimization",
-      description: "AI-powered noise reduction and voice enhancement",
-    },
-    {
-      icon: "⚡",
-      title: "Lightning Fast",
-      description: "Real-time processing with zero-latency monitoring",
-    },
-    {
-      icon: "🎯",
-      title: "Perfect Results",
-      description: "Professional-grade output for every project",
-    },
-  ]
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white overflow-hidden">
-      <div className="min-h-full bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white relative">
-  {/* Background Effects */}
-  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/20 via-transparent to-transparent pointer-events-none -z-10"></div>
-  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-gray-900/20 via-transparent to-transparent pointer-events-none -z-10"></div>
-  {/* ...re st of your content... */}
-
-      {/* Background Effects */}
-      
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/20 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-gray-900/20 via-transparent to-transparent"></div>
-
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-4xl mx-auto text-center">          {/* Logo/Brand */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="mb-8"
-          >
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-zinc-800 border border-zinc-700 rounded-2xl mb-6 overflow-hidden">
-              <img 
-                src={logoImage} 
-                alt="Luna Audio Editor Logo" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </motion.div>
-
-          {/* Main Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-500 bg-clip-text text-transparent leading-tight"
-          >
-    Luna - Your Podcast ,Perfected  Locally       
-   </motion.h1>
-            <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-3xl md:text-4xl text-zinc-200 mb-8"
-            >
-        
-            </motion.div>
-
-          {/* Tagline */}
-     
-
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="text-xl md:text-2xl text-zinc-300 mb-12 max-w-2xl mx-auto leading-relaxed"
-          >
-            The ultimate audio editing experience designed for creators who demand perfection
-          </motion.p>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(255, 255, 255, 0.4)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(ROUTES.EDITOR)}
-              className="bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-600 hover:border-zinc-500 text-white px-8 py-4 rounded-xl text-lg font-semibold backdrop-blur-sm transition-all duration-300 min-w-[200px]"
-            >
-              Start Creating ✨
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(255, 255, 255, 0.4)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleOpenFromLocal}
-              className="bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-600 hover:border-zinc-500 text-white px-8 py-4 rounded-xl text-lg font-semibold backdrop-blur-sm transition-all duration-300 min-w-[200px]"
-            >
-              Import Files 📁
-            </motion.button>
-          </motion.div>
-        </div>
-
-        {/* Scroll Indicator */}
-        {/* <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1.2 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-            className="w-6 h-10 border-2 border-zinc-400 rounded-full flex justify-center"
-          >
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-              className="w-1 h-3 bg-zinc-400 rounded-full mt-2"
-            />
-          </motion.div>
-        </motion.div> */}
-      </section>
-
-      {/* Features Section */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">
-              Why Choose Luna?
-            </h2>
-            <p className="text-xl text-zinc-400 max-w-2xl mx-auto">Built for professionals, designed for everyone</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-6 rounded-2xl hover:border-zinc-700 transition-all duration-300 group"
-              >
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-purple-300 transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="text-zinc-400 leading-relaxed">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-r from-gray-900/20 to-black/20 backdrop-blur-sm border border-zinc-800 rounded-3xl p-12"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">
-              Ready to Create?
-            </h2>
-            <p className="text-xl text-zinc-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of creators who trust Luna for their audio editing needs
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(147, 51, 234, 0.4)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(ROUTES.EDITOR)}
-              className="bg-gradient-to-r from-gray-600 to-black hover:from-gray-500 hover:to-black text-white px-12 py-4 rounded-xl text-xl font-semibold shadow-lg transition-all duration-300"
-            >
-              Get Started Now 🚀
-            </motion.button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative py-8 px-6 border-t border-zinc-800">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-zinc-500">© 2024 Luna Audio Editor. Crafted with ❤️ for creators.</p>
-        </div>
-      </footer>
-    </div>
-
-    </div>
-
-  )
+// --- UTILITY FUNCTION (usually in a separate file like `lib/utils.js`) ---
+// This function merges Tailwind CSS classes without conflicts.
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
 }
 
-export default HomePage
+// --- UI COMPONENTS (usually in separate files) ---
+
+const Button = forwardRef(
+  ({ className, variant = "default", size = "default", ...props }, ref) => {
+    const variants = {
+      default:
+        "bg-primary text-primary-foreground hover:bg-primary/90",
+      destructive:
+        "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+      outline:
+        "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+      secondary:
+        "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      ghost: "hover:bg-accent hover:text-accent-foreground",
+      link: "text-primary underline-offset-4 hover:underline",
+    };
+    const sizes = {
+      default: "h-10 px-4 py-2",
+      sm: "h-9 rounded-md px-3",
+      lg: "h-11 rounded-md px-8",
+      icon: "h-10 w-10",
+    };
+    return (
+      <button
+        className={cn(
+          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          variants[variant],
+          sizes[size],
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+Button.displayName = "Button";
+
+const Card = forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className,
+    )}
+    {...props}
+  />
+));
+Card.displayName = "Card";
+
+const CardHeader = forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+));
+CardHeader.displayName = "CardHeader";
+
+const CardTitle = forwardRef(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className,
+    )}
+    {...props}
+  />
+));
+CardTitle.displayName = "CardTitle";
+
+const CardDescription = forwardRef(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+));
+CardDescription.displayName = "CardDescription";
+
+const CardContent = forwardRef(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+));
+CardContent.displayName = "CardContent";
+
+const CardFooter = forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+));
+CardFooter.displayName = "CardFooter";
+
+const Badge = forwardRef(({ className, variant = "default", ...props }, ref) => {
+  const variants = {
+    default:
+      "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+    secondary:
+      "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+    destructive:
+      "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+    outline: "text-foreground",
+  };
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        variants[variant],
+        className,
+      )}
+      {...props}
+    />
+  );
+});
+Badge.displayName = "Badge";
+
+// --- MAIN PAGE COMPONENT ---
+
+export default function HomePage() {
+  const navigate = useNavigate();
+
+  const handleStartCreating = () => {
+    navigate(ROUTES.EDITOR);
+  };
+
+  const handleImportFiles = () => {
+    navigate(ROUTES.EDITOR + "?import=video");
+  };
+  return (
+    <div className="flex min-h-screen flex-col">
+      {/* Main Content */}
+      <div className="relative z-10"><header className="supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+          <div className="flex items-center space-x-2">
+            <Zap className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold">Luna</span>
+          </div>          <nav className="hidden items-center space-x-6 md:flex">
+            {/* Navigation items can be added here */}
+          </nav><div className="flex items-center space-x-4">
+            <Button onClick={handleStartCreating}>Start Creating</Button>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+          <div className="container px-4 md:px-6">
+            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">              <div className="flex flex-col justify-center space-y-4">
+                <div className="space-y-2">
+                  <Badge variant="secondary" className="w-fit">
+                    🎵 New: AI-Powered Audio Processing
+                  </Badge>
+                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                    Luna - Your Podcast, Perfected Locally
+                  </h1>
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                    Transform your audio content with Luna's intelligent editing platform. 
+                    Professional-grade audio editing with AI-powered noise reduction, 
+                    transcript editing, and seamless local processing.
+                  </p>
+                </div>                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                  <Button size="lg" className="h-12 px-8" onClick={handleStartCreating}>
+                    Start Creating ✨
+                  </Button>
+                  <Button variant="outline" size="lg" className="h-12 px-8" onClick={handleImportFiles}>
+                    Import Files 📁
+                  </Button>
+                </div>
+                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-1">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>100% Local Processing</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>No Data Upload Required</span>
+                  </div>
+                </div>
+              </div>              <div className="flex items-center justify-center">
+                <img
+                  src="https://placehold.co/600x400/1a1a1a/FFFFFF?text=Luna+Audio+Editor"
+                  width="600"
+                  height="400"
+                  alt="Luna Audio Editor Interface"
+                  className="mx-auto aspect-video overflow-hidden rounded-xl object-cover shadow-2xl"
+                />
+              </div>
+            </div>          </div>
+        </section>
+
+        
+      </main>
+      </div>
+    </div>
+  );
+}
