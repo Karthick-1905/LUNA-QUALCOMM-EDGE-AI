@@ -3,6 +3,11 @@ from fastapi.responses import JSONResponse
 from concurrent.futures import ThreadPoolExecutor
 import tempfile
 import os
+from imagine import ImagineClient, ChatMessage
+from pydantic import BaseModel
+
+
+from pprint import pprint
 from typing import Dict, Any
 from services.transcribe import extract_audio_from_video,transcribe,diarize,assign_speakers
 
@@ -113,7 +118,48 @@ async def analyze_video_from_path(video_path: str):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+class SummarizeRequest(BaseModel):
+    context: str
 
-if _name_ == "_main_":
+# init client
+print("Setting up client...")
+client = ImagineClient(
+    api_key="f66499e9-2d54-4adf-85c1-5c9d67a13b1b",
+    endpoint="http://10.190.147.82:5050/v2"
+)
+print("Client connected.")
+
+# health check
+print("Checking health...")
+health = client.health_check()
+pprint(health)
+
+# list models
+print("Listing models...")
+models = client.get_available_models_by_type()
+pprint(models)
+
+def summarize_text(context: str, language: str = "English") -> str:
+    """
+    Summarizes the given context in the specified language using the Sarvam-m model.
+    """
+    prompt = f"Summarize the following text in {language}:\n{context}"
+    response = client.chat(
+        messages=[
+            ChatMessage(role="user", content=prompt),
+        ],
+        model="Sarvam-m"
+    )
+    return response.first_content
+
+class SummarizeRequest(BaseModel):
+    context: str
+    language: str = "English"
+
+@app.post("/summarize")
+def summarize_endpoint(request: SummarizeRequest):
+    summary = summarize_text(request.context, request.language)
+    return {"summary": summary}
+if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="localhost", port=8000)
