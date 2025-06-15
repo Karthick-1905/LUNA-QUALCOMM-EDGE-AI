@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 
-export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName, customAudioUrl }) {
+export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName, audioUrl }) {
     const [dragActive, setDragActive] = useState(false)
     const [uploading, setUploading] = useState(false)
     const inputRef = useRef(null)
@@ -10,7 +10,7 @@ export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName, cu
 
     // Improved sync for custom audio
     useEffect(() => {
-        if (!customAudioUrl || !videoRef.current || !audioRef.current) return;
+        if (!audioUrl || !videoRef.current || !audioRef.current) return;
         const video = videoRef.current;
         const audio = audioRef.current;
         // Sync play/pause
@@ -38,7 +38,7 @@ export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName, cu
             video.removeEventListener('timeupdate', syncTime);
             video.removeEventListener('seeked', syncSeeked);
         };
-    }, [customAudioUrl]);
+    }, [audioUrl]);
 
     const handleDrag = (e) => {
         e.preventDefault()
@@ -155,18 +155,20 @@ export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName, cu
                                 ref={videoRef}
                                 src={uploadedVideo} 
                                 controls 
-                                muted={!!customAudioUrl}
+                                muted={!!audioUrl} // Always mute video if custom audio is present
                                 className="w-full rounded-md bg-black" 
                                 style={{ maxHeight: "calc(100vh - 200px)" }}
                             >
                                 Your browser does not support the video tag.
                             </video>
-                            {customAudioUrl && (
+                            {audioUrl && (
                                 <audio
                                     ref={audioRef}
-                                    src={customAudioUrl}
-                                    controls // show controls for debugging
-                                    style={{ width: '100%', marginTop: 8 }}
+                                    src={audioUrl}
+                                    autoPlay
+                                    controls={false} // Hide controls for end user
+                                    muted={false} // Ensure audio is not muted
+                                    style={{ display: 'none' }} // Hide audio element
                                 />
                             )}
                         </div>

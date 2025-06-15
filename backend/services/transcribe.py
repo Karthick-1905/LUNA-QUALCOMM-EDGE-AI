@@ -10,8 +10,13 @@ from faster_whisper import WhisperModel
 from typing import Union
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
+import yaml
 
-HUGGINGFACE_TOKEN = ""  # Replace with your Hugging Face token
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
+
+HUGGINGFACE_TOKEN = config.get("Hugging_face","")  # Replace with your Hugging Face token
 SAMPLE_RATE = 16000
 OUTPUT_DIR = os.path.join(os.getcwd(), "assests/users_segements")
 os.makedirs(OUTPUT_DIR, exist_ok=True)

@@ -3,7 +3,7 @@
 > Edge-native podcast creation and editing powered by on-device AI acceleration.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![Build](https://img.shields.io/badge/build-working-brightgreen)
 
 ---
 
@@ -16,7 +16,7 @@
 
 ##  Description
 
-*LUNA* is a standalone Windows application that empowers podcasters to record, edit, and publish professional-grade audio and video—entirely on-device, with no internet, no latency, and no cloud dependency.
+*LUNA* is a standalone Windows application that empowers podcasters, content creators to record, edit, and publish professional-grade audio and video—entirely on-device, with no internet, no latency, and no cloud dependency.
 
 Unlike traditional tools like Descript or Adobe Podcast, LUNA prioritizes data privacy, real-time performance, and offline productivity. By leveraging Snapdragon X Elite's NPU with quantized deep learning models and mixed-precision inference, it delivers a complete, responsive editing pipeline locally.
 
@@ -31,7 +31,7 @@ Whether you're batch-transcribing long sessions or live-editing transcripts, LUN
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
-- [Screenshots / Demo](#screenshots--demo)
+- [Sneak peeks](#screenshots--demo)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -42,12 +42,11 @@ Whether you're batch-transcribing long sessions or live-editing transcripts, LUN
 - Offline batch or live transcription using Whisper ASR with integrated VAD
 - Speaker diarization with automatic speaker labeling and segmentation
 - Text-based audio editing—remove filler words, correct speech via transcript
-- Multi-speaker voice cloning with real-time TTS (Vall-E-X or Coqui-TTS)
+- Multi-speaker voice cloning with real-time TTS (Coqui-TTS)
 - Video lip-sync using Wav2Lip for aligned facial articulation
 - Modular, parallelized architecture using chunked streaming & shared buffers
 - 100% offline operation—no cloud uploads, full local privacy
 - Automatic subtitle generation with SRT export and punctuation recovery
-- Quantized models (INT8) accelerated via Snapdragon NPU & GPU
 
 ---
 
@@ -71,40 +70,39 @@ Whether you're batch-transcribing long sessions or live-editing transcripts, LUN
 
 ### 1. Clone the repository
 
-bash
-git clone https://github.com/SuryaNarayanaa/luna.git
+```bash
+https://github.com/SuryaNarayanaa/LUNA-QUALCOMM-EDGE-AI.git
 cd luna
+ ```
 
 
 ### 2. Install Python dependencies
 
-bash
+```bash
 cd backend
 pip install -r requirements.txt
+```
 
 
 ### 3. Install frontend dependencies
-
-bash
+```bash
 cd frontend
 npm install
-
+```
 
 ##  Usage
 This section assumes you’ve already installed dependencies.
 
 Run the backend:
-
-bash
+```
 python main.py
-
+```
 
 Start the frontend :
-
-bash
+```
 cd frontend
 npm run dev
-
+```
 
 ## 🔧 Configuration
 Create a  file, config.yaml with the following parameters:
@@ -114,12 +112,11 @@ As per the config.example.yaml
 
 
 
-##  Screenshots / Demo
-Add demo content or screenshots in docs/ directory.
+##  Editor
 
-markdown
-![Transcript Editor](docs/screenshot_transcript.png)
-![Diarization Output](docs/screenshot_diarization.png)
+![Transcript Editor](public\img1.png)
+
+![Diarization Output](public\img2.png)
 
 
 ##  Contributing

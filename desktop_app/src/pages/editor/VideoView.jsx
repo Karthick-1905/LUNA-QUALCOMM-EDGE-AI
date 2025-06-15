@@ -102,7 +102,7 @@ const VideoView = () => {
             exit={{ opacity: 0 }}
             className="w-full flex items-center justify-center"
           >
-            <VideoUpload onVideoUpload={handleVideoUpload} />
+            <VideoUpload onVideoUpload={handleVideoUpload}  audioUrl = {audioUrl} />
           </motion.div>
         ) : (
           <motion.div 
@@ -132,6 +132,7 @@ const VideoView = () => {
                 segments={transcriptSegments}
                 isLoading={loading}
                 onTranscriptEdit={handleTranscriptEdit}
+                setaudiourl = {setAudioUrl}
               />
             </motion.div>
           </motion.div>
