@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 import { clsx } from "clsx";
@@ -18,6 +18,8 @@ import {
   Mail,
 } from "lucide-react";
 import { ROUTES } from "../config/routes";
+import Skeleton from "../components/ui/Skeleton";
+import screen from "../assets/screen.png"
 
 // --- UTILITY FUNCTION (usually in a separate file like `lib/utils.js`) ---
 // This function merges Tailwind CSS classes without conflicts.
@@ -143,18 +145,34 @@ const Badge = forwardRef(({ className, variant = "default", ...props }, ref) => 
 });
 Badge.displayName = "Badge";
 
-// --- MAIN PAGE COMPONENT ---
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [transcription, setTranscription] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleStartCreating = () => {
     navigate(ROUTES.EDITOR);
   };
 
   const handleImportFiles = () => {
-    navigate(ROUTES.EDITOR + "?import=video");
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "video/*";
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setTranscription(null);
+      setLoading(true);
+      setError(null);
+      // Store file in sessionStorage or pass via navigation state if needed
+      // For now, just navigate and let /editor handle loading/skeleton
+      navigate(ROUTES.EDITOR, { state: { file } });
+    };
+    fileInput.click();
   };
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Main Content */}
@@ -166,7 +184,7 @@ export default function HomePage() {
           </div>          <nav className="hidden items-center space-x-6 md:flex">
             {/* Navigation items can be added here */}
           </nav><div className="flex items-center space-x-4">
-            <Button onClick={handleStartCreating}>Start Creating</Button>
+            {/* <Button onClick={handleStartCreating}>Start  Creating</Button> */}
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
             </Button>
@@ -178,7 +196,8 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">              <div className="flex flex-col justify-center space-y-4">
+            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">              
+              <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <Badge variant="secondary" className="w-fit">
                     🎵 New: AI-Powered Audio Processing
@@ -191,11 +210,9 @@ export default function HomePage() {
                     Professional-grade audio editing with AI-powered noise reduction, 
                     transcript editing, and seamless local processing.
                   </p>
-                </div>                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button size="lg" className="h-12 px-8" onClick={handleStartCreating}>
-                    Start Creating ✨
-                  </Button>
-                  <Button variant="outline" size="lg" className="h-12 px-8" onClick={handleImportFiles}>
+                 </div>                <div className="flex flex-col gap-2 min-[400px]:flex-row"> 
+                
+                  <Button variant="outline" size="lg" className="h-12 bg-white text-black px-8 " onClick={handleImportFiles}>
                     Import Files 📁
                   </Button>
                 </div>
@@ -209,19 +226,34 @@ export default function HomePage() {
                     <span>No Data Upload Required</span>
                   </div>
                 </div>
-              </div>              <div className="flex items-center justify-center">
+              </div>             
+               <div  className="flex items-center justify-center">
                 <img
-                  src="https://placehold.co/600x400/1a1a1a/FFFFFF?text=Luna+Audio+Editor"
-                  width="600"
-                  height="400"
+                  src={ screen}
+                  width="2000"
+                  height="1600"
                   alt="Luna Audio Editor Interface"
-                  className="mx-auto aspect-video overflow-hidden rounded-xl object-cover shadow-2xl"
+                  className="mx-auto aspect-video overflow-hidden rounded-xl object-cover shadow-2xl rotateY-[-5deg] border-dark-glow"
+                  style={{ transform: 'rotateZ(-5deg)' }}
                 />
               </div>
             </div>          </div>
         </section>
-
-        
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+          <div className="container px-4 md:px-6">
+            <div className="mt-8">
+              {loading && (
+                <div>
+                  <Skeleton className="h-8 w-1/2 mb-2" />
+                  <Skeleton className="h-6 w-1/3 mb-2" />
+                  <Skeleton className="h-4 w-2/3 mb-2" />
+                  <Skeleton className="h-4 w-1/4" />
+                </div>
+              )}
+              {error && <div className="text-red-500">{error}</div>}
+            </div>
+          </div>
+        </section>
       </main>
       </div>
     </div>

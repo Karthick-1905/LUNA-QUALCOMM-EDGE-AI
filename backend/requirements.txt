@@ -11,3 +11,4 @@ scipy
 pandas
 pyannote.audio
 pyyaml
+python-mutlipart
