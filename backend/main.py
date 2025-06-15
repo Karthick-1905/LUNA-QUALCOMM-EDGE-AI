@@ -179,7 +179,6 @@ class SummarizeRequest(BaseModel):
 def summarize_endpoint(request: SummarizeRequest):
     summary = summarize_text(request.context, request.language)
     return {"summary": summary}
-
-if __name__ == "_main_":
+if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="localhost", port=8000)
