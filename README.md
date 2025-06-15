@@ -114,9 +114,13 @@ As per the config.example.yaml
 
 ##  Editor
 
-![Transcript Editor](public\img1.png)
+![Transcript Editor](public/img1.png)
 
-![Diarization Output](public\img2.png)
+![Diarization Output](public/img2.png)
+
+## Demo Video:
+
+[![Video](public/demovid.mp4)](public/demovid.mp4)
 
 
 ##  Contributing
