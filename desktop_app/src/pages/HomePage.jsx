@@ -20,6 +20,7 @@ import {
 import { ROUTES } from "../config/routes";
 import Skeleton from "../components/ui/Skeleton";
 import screen from "../assets/screen.png"
+import { copyFileToAssets } from '../utils/appUtils'; // Add this import
 
 // --- UTILITY FUNCTION (usually in a separate file like `lib/utils.js`) ---
 // This function merges Tailwind CSS classes without conflicts.
@@ -156,20 +157,54 @@ export default function HomePage() {
     navigate(ROUTES.EDITOR);
   };
 
-  const handleImportFiles = () => {
+  const handleImportFiles = async () => {
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = "video/*";
+    
     fileInput.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      setTranscription(null);
-      setLoading(true);
-      setError(null);
-      // Store file in sessionStorage or pass via navigation state if needed
-      // For now, just navigate and let /editor handle loading/skeleton
-      navigate(ROUTES.EDITOR, { state: { file } });
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Copy file to assets directory
+        const savedFilePath = await window.electron.copyFileToAssets(file.path);
+        
+        // Create form data for backend
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('savedPath', savedFilePath);
+        
+        // Send to backend
+        const response = await fetch('/api/analyze-video/', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        // Navigate to editor with file info
+        navigate(ROUTES.EDITOR, { 
+          state: { 
+            file,
+            savedFilePath,
+            originalName: file.name 
+          } 
+        });
+        
+      } catch (err) {
+        setError(`Error importing file: ${err.message}`);
+        console.error('Import error:', err);
+      } finally {
+        setLoading(false);
+      }
     };
+
     fileInput.click();
   };
 

@@ -1,216 +1,133 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  FastForward, 
-  Volume2,
-  VolumeX,
-  Subtitles,
-  SquarePlay
-} from 'lucide-react';
+import { useState, useRef } from "react"
+import { motion } from "framer-motion"
 
-export default function VideoPlayerSection({ 
-  file,
-  playerState, 
-  speakers, 
-  transcriptOverlay, 
-  onPlay, 
-  onPause, 
-  onSeek, 
-  onSpeakerFocus, 
-  onToggleOverlay
-}) {
-  const [videoSrc, setVideoSrc] = useState(null);
-  const [volume, setVolume] = useState(playerState.volume);
-  const [isMuted, setIsMuted] = useState(false);
+export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName }) {
+    const [dragActive, setDragActive] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const inputRef = useRef(null)
 
-  // build + revoke blob URL
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setVideoSrc(url);
-    return () => {
-      URL.revokeObjectURL(url);
-      setVideoSrc(null);
-    };
-  }, [file]);
+    const handleDrag = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true)
+        } else if (e.type === "dragleave") {
+            setDragActive(false)
+        }
+    }
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const handleDrop = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragActive(false)
+        const files = e.dataTransfer.files
+        if (files.length > 0) {
+            handleFile(files[0])
+        }
+    }
 
-  const handleVolumeChange = (newVolume) => {
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-  };
+    const handleChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            handleFile(file)
+        }
+    }
 
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-  };
+    const onButtonClick = () => {
+        inputRef.current.click()
+    }
 
-  const handleRewind = () => {
-    onSeek(Math.max(0, playerState.currentTime - 10));
-  };
+    const handleFile = (file) => {
+        if (file.type.startsWith("video/")) {
+            setUploading(true)
+            
+            // Simulate upload delay
+            setTimeout(() => {
+                const videoUrl = URL.createObjectURL(file)
+                onVideoUpload(file,videoUrl)
+                setUploading(false)
+            }, 1000)
+        } else {
+            alert("Please upload a video file")
+        }
+    }
 
-  const handleFastForward = () => {
-    onSeek(Math.min(playerState.duration, playerState.currentTime + 10));
-  };
+    return (
+        <div className="w-full h-full bg-zinc-900 rounded-lg">
+            {!uploadedVideo ? (
+                <div
+                    className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors h-full
+                        ${dragActive 
+                            ? "border-blue-400 bg-zinc-800/50" 
+                            : "border-zinc-700 hover:border-zinc-600"
+                        }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                >
+                    <input ref={inputRef} type="file" accept="video/*" onChange={handleChange} className="hidden" />
 
-  const handleScrubberChange = (e) => {
-    const newTime = (parseFloat(e.target.value) / 100) * playerState.duration;
-    onSeek(newTime);
-  };
-
-  const progressPercentage = (playerState.currentTime / playerState.duration) * 100;
-  return (
-    <div className="bg-zinc-900 border-b border-zinc-800 h-full flex flex-col">
-        <div className="flex-1 flex justify-center items-center px-4 pt-4 pb-3">
-          <div className="relative w-full h-full max-h-[60vh] aspect-[16/9] bg-black rounded-lg overflow-hidden shadow-2xl border border-zinc-700">
-            {/* File input for selecting video */}
-            {!videoSrc && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center">
-            <SquarePlay className="w-16 h-16 text-zinc-600 mb-2" />
-            <p className="text-zinc-500 text-sm">Select a video file to play</p>
-          </div>
-            )}
-            {videoSrc && (
-         <video
-          ref={playerState.videoRef}
-          src={videoSrc}
-          controls
-      onLoadedMetadata={playerState.onLoadedMetadata}
-      onTimeUpdate={playerState.onTimeUpdate}
-      onPlay={playerState.onPlay}
-      onPause={playerState.onPause}
-      className="w-full h-full object-contain"
-    />
-            )}
-            {/* Transcript Overlay */}
-          {transcriptOverlay && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 flex items-end p-4"
-            >
-              <div className="bg-black/80 rounded-lg p-3 max-w-lg">
-                <p className="text-white text-sm leading-relaxed">
-                  Welcome to our podcast. Today we're discussing the future of artificial intelligence and its impact on society.
-                </p>
-                <div className="flex items-center mt-2 text-xs text-zinc-300">
-                  <div 
-                    className="w-2 h-2 rounded-full mr-2"
-                    style={{ backgroundColor: speakers[0]?.color || '#3b82f6' }}
-                  />
-                  <span>{speakers[0]?.name || 'Speaker 1'}</span>
-                  <span className="ml-2 text-zinc-500">0:00 - 0:05</span>
+                    {uploading ? (
+                        <div className="py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p className="text-zinc-400">Uploading {fileName}...</p>
+                        </div>
+                    ) : (
+                        <div className="py-12">
+                            <svg
+                                className="mx-auto h-12 w-12 text-zinc-600 mb-4"
+                                stroke="currentColor"
+                                fill="none"
+                                viewBox="0 0 48 48"
+                            >
+                                <path
+                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                    strokeWidth={2}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                            <h3 className="text-lg font-medium text-zinc-200 mb-2">Upload your video</h3>
+                            <p className="text-zinc-400 mb-4">Drag and drop your video file here, or click to browse</p>
+                            <button
+                                onClick={onButtonClick}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors"
+                            >
+                                Choose File
+                            </button>
+                            <p className="text-xs text-zinc-500 mt-2">Supports MP4, MOV, AVI, and other video formats</p>
+                        </div>
+                    )}
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </div>      </div>
-
-      {/* Controls Section - Fixed at bottom */}
-      <div className="flex justify-center px-4 pb-4 mt-auto">
-        <div className="w-full max-w-2xl space-y-3">
-          {/* Progress Scrubber */}
-          <div className="space-y-2">
-            <div className="relative">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={progressPercentage}
-                onChange={handleScrubberChange}
-                className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progressPercentage}%, #52525b ${progressPercentage}%, #52525b 100%)`
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-zinc-400">
-              <span>{formatTime(playerState.currentTime)}</span>
-              <span>{formatTime(playerState.duration)}</span>
-            </div>
-          </div>
-
-          {/* Transport Controls */}
-          <div className="flex items-center justify-between">
-            {/* Left Controls */}
-            <div className="flex items-center space-x-3">
-              {/* Main Transport */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleRewind}
-                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                  title="Rewind 10s"
+            ) : (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4 h-full"
                 >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={playerState.isPlaying ? onPause : onPlay}
-                  className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  {playerState.isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                </button>
-
-                <button
-                  onClick={handleFastForward}
-                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                  title="Forward 10s"
-                >
-                  <FastForward className="w-5 h-5" />
-                </button>
-
-                
-              </div>
-
-              {/* Volume Control */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleMuteToggle}
-                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                >
-                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                  className="w-20 h-4 video-volume-slider"
-                />
-              </div>
-            </div>
-
-            {/* Right Controls */}
-            <div className="flex items-center space-x-3">
-              
-
-              {/* Transcript Overlay Toggle */}
-              <button
-                onClick={onToggleOverlay}
-                className={`p-2 rounded-lg transition-colors ${
-                  transcriptOverlay
-                    ? 'text-blue-400 bg-blue-400/20'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                }`}
-                title="Toggle transcript overlay"
-              >
-                <Subtitles className="w-4 h-4" />
-              </button>
-
-              
-            </div>
-          </div>
+                    <div className="bg-zinc-800 rounded-lg p-4 h-full">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-medium text-zinc-200">Video Preview</h3>
+                            <button 
+                                onClick={() => onVideoUpload(null, "")} 
+                                className="text-zinc-400 hover:text-zinc-200 text-sm"
+                            >
+                                Upload New
+                            </button>
+                        </div>
+                        <video 
+                            src={uploadedVideo} 
+                            controls 
+                            className="w-full rounded-md bg-black" 
+                            style={{ maxHeight: "calc(100vh - 200px)" }}
+                        >
+                            Your browser does not support the video tag.
+                        </video>
+                        <p className="text-sm text-zinc-400 mt-2">{fileName}</p>
+                    </div>
+                </motion.div>
+            )}
         </div>
-      </div>
-    </div>
-  );
+    )
 }
