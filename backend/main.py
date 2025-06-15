@@ -3,12 +3,13 @@ from fastapi.responses import JSONResponse
 from concurrent.futures import ThreadPoolExecutor
 import tempfile
 import os
+from services.tts_service import run_voice_cloning_service
 from imagine import ImagineClient, ChatMessage
 from pydantic import BaseModel
 
 
 from pprint import pprint
-from typing import Dict, Any
+from typing import Dict, Any, List
 from services.transcribe import extract_audio_from_video,transcribe,diarize,assign_speakers,save_to_json,OUTPUT_DIR
 from services.speaker_segmentation import SpeakerSegmentationService
 from fastapi.middleware.cors import CORSMiddleware
@@ -124,7 +125,18 @@ async def analyze_video(file: UploadFile = File(...)):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+class TranscriptEdit(BaseModel):
+    segments: Any
 
+@app.post("/edit-transcript/")
+async def edit_transcript(transcript: TranscriptEdit):
+    try:
+        output_path = os.path.join(OUTPUT_DIR, "transcript-edited.json")
+        save_to_json({"segments": transcript.segments}, output_path)
+        run_voice_cloning_service()
+        return JSONResponse(content={"status": "success", "message": "Transcript saved successfully"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save transcript: {str(e)}")
 @app.post("/analyze-video-path/")
 async def analyze_video_from_path(video_path: str):
     try:
@@ -181,4 +193,4 @@ def summarize_endpoint(request: SummarizeRequest):
     return {"summary": summary}
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="localhost", port=8000)
+    uvicorn.run(app, host="localhost", port=8000 )
