@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Components
 import TopBar from '../components/layout/TopBar';
 import RightSidebar from '../components/layout/RightSidebar';
+import Skeleton from '../components/ui/Skeleton';
 
 // Data and utilities
 import { 
@@ -25,8 +26,14 @@ import { ROUTES } from '../config/routes';
 
 const EditorLayout = () => {
   const navigate = useNavigate();
+
   const location = useLocation();
-  
+  const [loading, setLoading] = useState(false);
+   // Create a ref to be passed down to the component with the <video> tag
+  const videoRef = useRef(null);
+  const [transcription, setTranscription] = useState(null);
+  const [videoUrl, setVideoUrl] = useState(null);
+
   // Core Player State
   const [playerState, setPlayerState] = useState({
     currentTime: 0,
@@ -75,51 +82,81 @@ const EditorLayout = () => {
     const path = location.pathname;
     if (path === ROUTES.EDITOR_VIDEO) return 'video';
     if (path === ROUTES.EDITOR_TRANSCRIPT) return 'transcript';
-    if (path === ROUTES.EDITOR_TIMELINE) return 'timeline';
-    if (path === ROUTES.EDITOR_SPLIT) return 'split';
+   
     if (path === ROUTES.EDITOR_EXPORT) return 'export';
-    return 'video'; // default
+    return 'video';
   };
 
   const currentView = getCurrentView();
-
-  // Playback timer simulation
-  const intervalRef = useRef(null);
-
+  console.log(location.state)
+  
   useEffect(() => {
-    if (playerState.isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setPlayerState(prev => {
-          const newTime = prev.currentTime + 0.1;
-          return newTime >= prev.duration 
-            ? { ...prev, currentTime: prev.duration, isPlaying: false }
-            : { ...prev, currentTime: newTime };
-        });
-      }, 100);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+    // Check if file is passed from HomePage
+    if (location.state && location.state.file) {
+      const file = location.state.file;
+      setLoading(true);
+      setTranscription(null);
+      // Create a local URL for video playback
+      const url = URL.createObjectURL(file);
+      setVideoUrl(url);
+      // Send to backend
+      const formData = new FormData();
+      formData.append('file', file);
+      fetch('/api/analyze-video/', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => {
+          if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          setTranscription(data);
+          if (data?.transcription?.segments) {
+        setTranscriptSegments(data.transcription.segments.map((seg, i) => ({
+          ...seg,
+          id: String(i),
+          speaker: seg.speaker,
+          text: seg.text,
+          start: seg.start,
+          end: seg.end,
+          confidence: 1,
+          isEditable: true
+        })));
+          }
+        })
+        .catch((error) => {
+          console.error("Fetch error:", error);
+          setTranscription(null);
+        })
+        .finally(() => setLoading(false));
     }
+  }, [location.state]);
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [playerState.isPlaying]);
+  // Set video duration from metadata
+  const handleVideoLoadedMetadata = (e) => {
+    const duration = e.target.duration;
+    setPlayerState(prev => ({ ...prev, duration }));
+  };
 
   // Event Handlers
   const handlePlay = useCallback(() => {
+    videoRef.current?.play();
+
     setPlayerState(prev => ({ ...prev, isPlaying: true }));
   }, []);
 
   const handlePause = useCallback(() => {
+    videoRef.current?.pause();
     setPlayerState(prev => ({ ...prev, isPlaying: false }));
   }, []);
 
   const handleSeek = useCallback((time) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+    }
     setPlayerState(prev => ({ ...prev, currentTime: time }));
   }, []);
 
@@ -127,9 +164,23 @@ const EditorLayout = () => {
     setPlayerState(prev => ({ ...prev, selectedSpeaker: speakerId }));
   }, []);
 
+
+   const handleTimeUpdate = useCallback((e) => {
+    if (!videoRef.current || videoRef.current.seeking) return;
+    setPlayerState(prev => ({ ...prev, currentTime: e.target.currentTime }));
+}, [])
+ const handleVideoPlay = useCallback(() => {
+   // Syncs state if playback is triggered by native controls
+   setPlayerState(prev => ({ ...prev, isPlaying: true }));
+ }, []);
+
+ const handleVideoPause = useCallback(() => {
+   // Syncs state if pause is triggered by native controls
+   setPlayerState(prev => ({ ...prev, isPlaying: false }));
+   }, []);
   const handleViewChange = useCallback((view) => {
     const routeMap = {
-      'video': ROUTES.EDITOR_VIDEO,
+      'video': ROUTES.EDITOR,
       'transcript': ROUTES.EDITOR_TRANSCRIPT,
       'timeline': ROUTES.EDITOR_TIMELINE,
       'split': ROUTES.EDITOR_SPLIT,
@@ -263,86 +314,91 @@ const EditorLayout = () => {
     handleTogglePlayback();
   });
 
-  useHotkeys('mod+p', (e) => {
+  useHotkeys('modp', (e) => {
     e.preventDefault();
     handleTogglePlayback();
   });
 
-  useHotkeys('mod+t', (e) => {
+  useHotkeys('modt', (e) => {
     e.preventDefault();
     setIsDark(!isDark);
   });
 
-  useHotkeys('mod+e', (e) => {
+  useHotkeys('mode', (e) => {
     e.preventDefault();
     handleExport();
   });
 
-  useHotkeys('mod+r', (e) => {
+  useHotkeys('modr', (e) => {
     e.preventDefault();
     if (editState.selectedSegment) {
       handleSegmentRegenerate(editState.selectedSegment);
     }
   });
 
-  useHotkeys('mod+shift+t', (e) => {
+  useHotkeys('modshiftt', (e) => {
     e.preventDefault();
     handleViewChange(currentView === 'split' ? 'transcript' : 'split');
   });
 
-  useHotkeys('mod+1', (e) => {
+  useHotkeys('mod1', (e) => {
     e.preventDefault();
     handleViewChange('transcript');
   });
 
-  useHotkeys('mod+2', (e) => {
+  useHotkeys('mod2', (e) => {
     e.preventDefault();
     handleViewChange('timeline');
   });
 
-  useHotkeys('mod+3', (e) => {
+  useHotkeys('mod3', (e) => {
     e.preventDefault();
     handleViewChange('video');
   });
 
-  useHotkeys('mod+4', (e) => {
+  useHotkeys('mod4', (e) => {
     e.preventDefault();
     handleViewChange('split');
   });
 
-  useHotkeys('mod+5', (e) => {
+  useHotkeys('mod5', (e) => {
     e.preventDefault();
     handleViewChange('editing');
   });
 
-  useHotkeys('mod+6', (e) => {
+  useHotkeys('mod6', (e) => {
     e.preventDefault();
     handleViewChange('export');
   });
 
-  useHotkeys('mod+a', (e) => {
+  useHotkeys('moda', (e) => {
     e.preventDefault();
     setIsRightSidebarOpen(!isRightSidebarOpen);
   });
 
-  // Redirect to video view if on base editor route
-  if (location.pathname === ROUTES.EDITOR) {
-    return <Navigate to={ROUTES.EDITOR_VIDEO} replace />;
-  }
-
   // Shared props for all views
   const sharedProps = {
-    playerState,
-    speakers,
+
+playerState: {
+      ...playerState,
+      videoUrl,
+      videoRef, // Pass ref to child
+      onLoadedMetadata: handleVideoLoadedMetadata,
+      onTimeUpdate: handleTimeUpdate,
+      onPlay: handleVideoPlay, // For the <video> element
+      onPause: handleVideoPause, // For the <video> element
+    },    speakers,
     viewState,
+    file: location.state?.file || null,
     setViewState,
     transcriptSegments,
     timelineTracks,
     editState,
     macroSettings,
     exportSettings,
-    onPlay: handlePlay,
-    onPause: handlePause,
+    loading,
+    transcription, // These handlers are for UI controls (buttons, hotkeys) to call
+    onPlay: handlePlay, // Renamed for clarity in child component+    onPause: handlePause, // Renamed for clarity in child component
     onSeek: handleSeek,
     onSpeakerFocus: handleSpeakerFocus,
     onSegmentEdit: handleSegmentEdit,
@@ -359,7 +415,7 @@ const EditorLayout = () => {
 
   return (
     <div className="h-screen bg-zinc-950 text-neutral-100 flex flex-col overflow-hidden">
-      {/* Top Bar - Fixed Height */}
+      
       <TopBar
         projectName={projects.find(p => p.id === selectedProject)?.name || 'Untitled Project'}
         autosaveStatus={autosaveStatus}
@@ -448,6 +504,7 @@ const EditorLayout = () => {
             <RightSidebar
               speakers={speakers}
               speakerStats={speakerStats}
+              transcription={transcription}
               onClose={() => setIsRightSidebarOpen(false)}
             />
           )}

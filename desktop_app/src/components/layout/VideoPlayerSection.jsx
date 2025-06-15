@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Play, 
@@ -12,16 +12,30 @@ import {
 } from 'lucide-react';
 
 export default function VideoPlayerSection({ 
+  file,
   playerState, 
   speakers, 
   transcriptOverlay, 
   onPlay, 
   onPause, 
   onSeek, 
-  onToggleOverlay 
+  onSpeakerFocus, 
+  onToggleOverlay
 }) {
+  const [videoSrc, setVideoSrc] = useState(null);
   const [volume, setVolume] = useState(playerState.volume);
   const [isMuted, setIsMuted] = useState(false);
+
+  // build + revoke blob URL
+  useEffect(() => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setVideoSrc(url);
+    return () => {
+      URL.revokeObjectURL(url);
+      setVideoSrc(null);
+    };
+  }, [file]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -54,17 +68,28 @@ export default function VideoPlayerSection({
   const progressPercentage = (playerState.currentTime / playerState.duration) * 100;
   return (
     <div className="bg-zinc-900 border-b border-zinc-800 h-full flex flex-col">
-      {/* Video Player Container - Optimized for split view */}
-      <div className="flex-1 flex justify-center items-center px-4 pt-4 pb-3">
-        <div className="relative w-full h-full max-h-[60vh] aspect-[16/9] bg-black rounded-lg overflow-hidden shadow-2xl border border-zinc-700">
-          {/* Mock Video Player */}
-          <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-            <div className="text-center">
-              <SquarePlay className="w-16 h-16 text-zinc-600 mx-auto mb-2" />
-              <p className="text-zinc-500 text-sm">Video Player</p>
-              <p className="text-zinc-600 text-xs">Audio waveform visualization would appear here</p>
-            </div>
-          </div>{/* Transcript Overlay */}
+        <div className="flex-1 flex justify-center items-center px-4 pt-4 pb-3">
+          <div className="relative w-full h-full max-h-[60vh] aspect-[16/9] bg-black rounded-lg overflow-hidden shadow-2xl border border-zinc-700">
+            {/* File input for selecting video */}
+            {!videoSrc && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center">
+            <SquarePlay className="w-16 h-16 text-zinc-600 mb-2" />
+            <p className="text-zinc-500 text-sm">Select a video file to play</p>
+          </div>
+            )}
+            {videoSrc && (
+         <video
+          ref={playerState.videoRef}
+          src={videoSrc}
+          controls
+      onLoadedMetadata={playerState.onLoadedMetadata}
+      onTimeUpdate={playerState.onTimeUpdate}
+      onPlay={playerState.onPlay}
+      onPause={playerState.onPause}
+      className="w-full h-full object-contain"
+    />
+            )}
+            {/* Transcript Overlay */}
           {transcriptOverlay && (
             <motion.div
               initial={{ opacity: 0 }}

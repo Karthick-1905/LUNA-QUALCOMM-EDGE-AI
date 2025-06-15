@@ -1,132 +1,193 @@
-import json
-from pydub import AudioSegment
 import os
+import json
+import logging
+from typing import List, Dict, Tuple, Optional
+from dataclasses import dataclass
+from pydub import AudioSegment
 
-def main( audio_file_path: str, transcript_file_json_path: str, output_dir: str = "speaker_audio"):
-    def process_speaker_segments(transcript_file_json_path: str ) :
-        def get_largest_contiguous_chunks(speaker_words, min_total_duration=30.0):
-            result = {}
-            for speaker, words in speaker_words.items():
-                # Find contiguous chunks
-                chunks = []
-                current_chunk = []
-                for i, word in enumerate(words):
-                    if not current_chunk:
-                        current_chunk = [word]
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@dataclass
+class SpeakerSegment:
+    """Speaker segment with timing and text information"""
+    speaker_id: str
+    start_time: float
+    end_time: float
+    text: str
+    words: List[Dict] = None
+
+class SpeakerSegmentationService:
+    """Service for processing speaker segmentation from transcript data"""
+    
+    def __init__(self, assets_dir: str = None):
+        # Set up paths - use absolute paths
+        if assets_dir is None:
+            # Get the backend directory (parent of services)
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self.assets_dir = os.path.join(backend_dir, "assests")
+        else:
+            self.assets_dir = assets_dir
+            
+        self.original_audio_path = os.path.join(self.assets_dir, "audio", "extracted_audio.wav")
+        self.speaker_audio_output_dir = os.path.join(self.assets_dir, "speaker_audio")
+        self.transcripts_dir = os.path.join(self.assets_dir, "users_segements")
+        
+        # Ensure output directory exists
+        os.makedirs(self.speaker_audio_output_dir, exist_ok=True)
+    
+    def load_transcript_data(self, transcript_path: str = None) -> Dict:
+        """Load transcript JSON file"""
+        try:
+            if not transcript_path:
+                transcript_path = os.path.join(self.transcripts_dir, "transcript.json")
+            
+            with open(transcript_path, 'r', encoding='utf-8') as f:
+                transcript_data = json.load(f)
+            
+            logger.info(f"Loaded transcript with {len(transcript_data.get('segments', []))} segments")
+            return transcript_data
+            
+        except Exception as e:
+            logger.error(f"Error loading transcript data: {e}")
+            raise
+    
+    def extract_speaker_segments(self, transcript_data: Dict) -> Dict[str, List[SpeakerSegment]]:
+        """Extract speaker segments from transcript data"""
+        speaker_segments = {}
+        
+        for segment in transcript_data.get("segments", []):
+            segment_start = segment.get("start", 0)
+            segment_end = segment.get("end", 0)
+            segment_text = segment.get("text", "").strip()
+            segment_speaker = segment.get("speaker")
+            
+            # If segment has speaker info, use it
+            if segment_speaker:
+                if segment_speaker not in speaker_segments:
+                    speaker_segments[segment_speaker] = []
+                
+                speaker_segments[segment_speaker].append(SpeakerSegment(
+                    speaker_id=segment_speaker,
+                    start_time=segment_start,
+                    end_time=segment_end,
+                    text=segment_text,
+                    words=segment.get("words", [])
+                ))
+            
+            # Also check words for speaker information
+            for word in segment.get("words", []):
+                word_speaker = word.get("speaker")
+                if word_speaker:
+                    if word_speaker not in speaker_segments:
+                        speaker_segments[word_speaker] = []
+                    
+                    # Create mini-segments for each word if needed
+                    word_start = word.get("start", segment_start)
+                    word_end = word.get("end", segment_end)
+                    word_text = word.get("word", "").strip()
+                    
+                    # Group consecutive words by the same speaker
+                    if (speaker_segments[word_speaker] and 
+                        speaker_segments[word_speaker][-1].end_time >= word_start - 0.1):
+                        # Extend the last segment
+                        last_segment = speaker_segments[word_speaker][-1]
+                        last_segment.end_time = word_end
+                        last_segment.text += " " + word_text
                     else:
-                        # Check if contiguous (end == start)
-                        if abs(word["start"] - current_chunk[-1]["end"]) < 1e-6:
-                            current_chunk.append(word)
-                        else:
-                            chunks.append(current_chunk)
-                            current_chunk = [word]
-                if current_chunk:
-                    chunks.append(current_chunk)
-
-                # Sort chunks by duration (descending)
-                chunks = sorted(
-                    chunks,
-                    key=lambda chunk: chunk[-1]["end"] - chunk[0]["start"],
-                    reverse=True
-                )
-
-                # Merge chunks until reaching min_total_duration
-                merged = []
-                total_duration = 0.0
-                for chunk in chunks:
-                    if not merged:
-                        merged.extend(chunk)
-                        total_duration = merged[-1]["end"] - merged[0]["start"]
-                    else:
-                        # Add a gap if needed
-                        if abs(chunk[0]["start"] - merged[-1]["end"]) < 1e-6:
-                            merged.extend(chunk)
-                        else:
-                            # Insert a gap word if you want, or just concatenate
-                            merged.extend(chunk)
-                        total_duration = merged[-1]["end"] - merged[0]["start"]
-                    if total_duration >= min_total_duration:
-                        break
-
-                result[speaker] = merged
-            return result
-
-        with open(transcript_file_json_path, "r", encoding="utf-8") as f:
-            output_with_speakers = json.load(f)
-            # Group words by speaker and merge consecutive words for the same speaker
-            speaker_words = {}
-            for segment in output_with_speakers.get("segments", []):
-                words = segment.get("words", [])
-                i = 0
-                while i < len(words):
-                    word_info = words[i]
-                    speaker = word_info.get("speaker")
-                    if speaker is None:
-                        i += 1
-                        continue
-                    if speaker not in speaker_words:
-                        speaker_words[speaker] = []
-                    current_word = {
-                        "word": word_info.get("word"),
-                        "start": word_info.get("start"),
-                        "end": word_info.get("end")
-                    }
-                    # Merge with previous word if end == start
-                    if (
-                        speaker_words[speaker]
-                        and speaker_words[speaker][-1]["end"] == current_word["start"]
-                    ):
-                        prev_word = speaker_words[speaker].pop()
-                        merged_word = {
-                            "word": prev_word["word"] + current_word["word"],
-                            "start": prev_word["start"],
-                            "end": current_word["end"]
-                        }
-                        speaker_words[speaker].append(merged_word)
-                    else:
-                        speaker_words[speaker].append(current_word)
-
-                    # Merge with next word if the next speaker is the same
-                    while (
-                        i + 1 < len(words)
-                        and words[i + 1].get("speaker") == speaker
-                    ):
-                        next_word_info = words[i + 1]
-                        last_word = speaker_words[speaker].pop()
-                        merged_word = {
-                            "word": last_word["word"] + next_word_info.get("word"),
-                            "start": last_word["start"],
-                            "end": next_word_info.get("end")
-                        }
-                        speaker_words[speaker].append(merged_word)
-                        i += 1
-                    i += 1
-
-            # Get 30 seconds of highest quality data for each speaker
-            best_chunks = get_largest_contiguous_chunks(speaker_words, min_total_duration=30.0)
-
-            # For each speaker, sort the segments by start and end time
-            for speaker, segments in best_chunks.items():
-                best_chunks[speaker] = sorted(segments, key=lambda x: (x["start"], x["end"]))
-
-            return best_chunks
+                        # Create new segment
+                        speaker_segments[word_speaker].append(SpeakerSegment(
+                            speaker_id=word_speaker,
+                            start_time=word_start,
+                            end_time=word_end,
+                            text=word_text
+                        ))
+        
+        # Sort segments by start time for each speaker
+        for speaker_id in speaker_segments:
+            speaker_segments[speaker_id].sort(key=lambda x: x.start_time)
+        
+        logger.info(f"Extracted segments for {len(speaker_segments)} speakers")
+        for speaker_id, segments in speaker_segments.items():
+            total_duration = sum(seg.end_time - seg.start_time for seg in segments)
+            logger.info(f"{speaker_id}: {len(segments)} segments, {total_duration:.2f}s total")
+        
+        return speaker_segments
+    
+    def create_speaker_audio_files(self, speaker_segments: Dict[str, List[SpeakerSegment]]) -> Dict[str, str]:
+        """Create individual audio files for each speaker"""
+        try:
+            # Load original audio
+            original_audio = AudioSegment.from_file(self.original_audio_path)
+            speaker_audio_paths = {}
+            
+            for speaker_id, segments in speaker_segments.items():
+                # Combine all segments for this speaker
+                combined_audio = AudioSegment.empty()
+                
+                for segment in segments:
+                    start_ms = int(segment.start_time * 1000)
+                    end_ms = int(segment.end_time * 1000)
+                    
+                    # Extract segment audio
+                    segment_audio = original_audio[start_ms:end_ms]
+                    combined_audio += segment_audio
+                    
+                    # Add small silence between segments for natural speech
+                    if len(combined_audio) > 0:
+                        combined_audio += AudioSegment.silent(duration=100)  # 100ms silence
+                
+                # Export speaker audio
+                output_path = os.path.join(self.speaker_audio_output_dir, f"{speaker_id}.wav")
+                combined_audio.export(output_path, format="wav")
+                speaker_audio_paths[speaker_id] = output_path
+                
+                logger.info(f"Created speaker audio for {speaker_id}: {output_path} ({len(combined_audio)/1000:.2f}s)")
+            
+            return speaker_audio_paths
+            
+        except Exception as e:
+            logger.error(f"Error creating speaker audio files: {e}")
+            raise
+    
+    def process_speaker_segmentation(self, transcript_path: str = None) -> Dict[str, str]:
+        """Complete workflow to process speaker segmentation"""
+        try:
+            # Load transcript data
+            transcript_data = self.load_transcript_data(transcript_path)
+            
+            # Extract speaker segments
+            speaker_segments = self.extract_speaker_segments(transcript_data)
+            
+            # Create speaker audio files
+            speaker_audio_paths = self.create_speaker_audio_files(speaker_segments)
+            
+            logger.info(f"Speaker segmentation processing complete: {len(speaker_audio_paths)} speaker files created")
+            return speaker_audio_paths
+            
+        except Exception as e:
+            logger.error(f"Error in speaker segmentation process: {e}")
+            raise
 
 
-    speaker_segments = process_speaker_segments(transcript_file_json_path)
-    def split_audio_by_speaker(speaker_segments, audio_file_path, output_dir="speaker_audio"):
-        os.makedirs(output_dir, exist_ok=True)
-        audio = AudioSegment.from_file(audio_file_path)
-        speaker_audio_paths = {}
+def run_speaker_segmentation_service():
+    """Main function to run the speaker segmentation service"""
+    try:
+        # Initialize service
+        segmentation_service = SpeakerSegmentationService()
+        
+        # Process speaker segmentation
+        speaker_files = segmentation_service.process_speaker_segmentation()
+        
+        print(f"Speaker segmentation completed!")
+        for speaker_id, file_path in speaker_files.items():
+            print(f"{speaker_id}: {file_path}")
+        
+        return speaker_files
+        
+    except Exception as e:
+        logger.error(f"Speaker segmentation service failed: {e}")
+        raise
 
-        for speaker, segments in speaker_segments.items():
-            speaker_audio = AudioSegment.empty()
-            for seg in segments:
-                start_ms = int(seg["start"] * 1000)
-                end_ms = int(seg["end"] * 1000)
-                speaker_audio += audio[start_ms:end_ms]
-            output_path = os.path.join(output_dir, f"{speaker}.wav")
-            speaker_audio.export(output_path, format="wav")
-            speaker_audio_paths[speaker] = output_path
-
-        return speaker_audio_paths
-    return split_audio_by_speaker(speaker_segments, audio_file_path, output_dir)
+if __name__ == "__main__":
+    run_speaker_segmentation_service()

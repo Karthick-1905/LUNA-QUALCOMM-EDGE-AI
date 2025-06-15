@@ -9,10 +9,9 @@ from pyannote.audio import Pipeline
 from faster_whisper import WhisperModel
 from typing import Union
 from concurrent.futures import ThreadPoolExecutor
-from .speaker_segmentation import main
 import subprocess
 
-#HUGGINGFACE_TOKEN = "your_huggingface_token_here"  # Replace with your Hugging Face token
+HUGGINGFACE_TOKEN = ""  # Replace with your Hugging Face token
 SAMPLE_RATE = 16000
 OUTPUT_DIR = os.path.join(os.getcwd(), "assests/users_segements")
 os.makedirs(OUTPUT_DIR, exist_ok=True)

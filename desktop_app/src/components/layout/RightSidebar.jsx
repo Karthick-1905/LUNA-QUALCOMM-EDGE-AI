@@ -69,9 +69,9 @@ function ProgressBar({ value, max, color = "bg-blue-500" }) {
   const percentage = Math.min((value / max) * 100, 100);
   
   return (
-    <div className="w-full bg-zinc-700 rounded-full h-2">
+    <div className="w-full bg-white rounded-full h-2">
       <div 
-        className={cn("h-2 rounded-full transition-all duration-300", color)}
+        className={cn("h-2 rounded-full transition-all duration-300")}
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -81,6 +81,7 @@ function ProgressBar({ value, max, color = "bg-blue-500" }) {
 export default function RightSidebar({
   speakers,
   speakerStats,
+  transcription,
   isOpen = true,
   onClose,
 }) {
@@ -104,6 +105,9 @@ export default function RightSidebar({
     return speakerStats.reduce((total, stat) => total + (stat.wordsPerMinute * (stat.totalTime / 60)), 0);
   };
 
+  // If transcription.statistics exists, use it for analytics
+  const stats = transcription?.statistics;
+
 
 
   if (!isOpen) return null;
@@ -118,11 +122,7 @@ export default function RightSidebar({
             <p className="text-xs text-zinc-400 mt-1">Real-time insights and project metrics</p>
           </div>
           {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
-              title="Close panel"
-            >
+            <button onClick={onClose} className="text-zinc-400 hover:text-white p-1 rounded">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -243,7 +243,35 @@ export default function RightSidebar({
             })}
           </div>        </CollapsibleSection>
 
-        
+        {/* Speaker Stats Section */}
+        <CollapsibleSection title="Speaker Stats" icon={Users} defaultOpen>
+          {stats ? (
+            <div>
+              <div className="mb-2 text-xs text-zinc-400">Total Speakers: {stats.total_speakers}</div>
+              <div className="mb-2 text-xs text-zinc-400">Total Words: {stats.total_words}</div>
+              <div className="mb-2 text-xs text-zinc-400">Speaker Word Counts:</div>
+              <ul className="mb-2">
+                {Object.entries(stats.speaker_word_counts).map(([speaker, count]) => (
+                  <li key={speaker} className="flex justify-between">
+                    <span className="font-semibold text-blue-400">{speaker}</span>
+                    <span>{count} words</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mb-2 text-xs text-zinc-400">Speaker Speaking Times:</div>
+              <ul>
+                {Object.entries(stats.speaker_speaking_times).map(([speaker, time]) => (
+                  <li key={speaker} className="flex justify-between">
+                    <span className="font-semibold text-green-400">{speaker}</span>
+                    <span>{formatTime(time)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="text-zinc-400 text-xs">No analytics available.</div>
+          )}
+        </CollapsibleSection>
 
         {/* Quick Actions */}
         <CollapsibleSection title="Quick Actions" icon={Coffee} defaultOpen={false}>
