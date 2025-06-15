@@ -112,13 +112,13 @@ const EditorLayout = () => {
               </div>
             </div>
           </div>
-
+          
           {/* Right Sidebar */}
           {isRightSidebarOpen && (
             <RightSidebar
               speakers={speakers}
               speakerStats={speakerStats}
-              transcription={transcription}
+              transcriptionData={transcription}
               onClose={() => setIsRightSidebarOpen(false)}
             />
           )}

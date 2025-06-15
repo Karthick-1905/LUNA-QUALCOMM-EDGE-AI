@@ -13,6 +13,8 @@ const VideoView = () => {
   const [fileName, setFileName] = useState("")
   const [loading, setLoading] = useState(false)
   const [transcriptSegments, setTranscriptSegments] = useState([])
+  const [audioUrl, setAudioUrl] = useState(null) // <-- new state
+  const [customAudioUrl, setCustomAudioUrl] = useState(null)
 
   const handleVideoUpload = async (file,videoUrl) => {
     setLoading(true)
@@ -67,10 +69,33 @@ const VideoView = () => {
     }
   }
 
+  // Handle transcript edit and call /edit-transcript/
+  const handleTranscriptEdit = async (updatedSegments) => {
+    setLoading(true)
+    try {
+      const response = await fetch('/edit-transcript/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segments: updatedSegments })
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+      // Get audio as blob
+      const audioBlob = await response.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+      setCustomAudioUrl(audioUrl)
+    } catch (error) {
+      console.error('Error editing transcript:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-zinc-900">
       <AnimatePresence>
-        {!uploadedVideo ? (
+        {!uploadedVideo && !customAudioUrl ? (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -94,6 +119,7 @@ const VideoView = () => {
                 uploadedVideo={uploadedVideo} 
                 fileName={fileName}
                 onVideoUpload={handleVideoUpload}
+                customAudioUrl={customAudioUrl}
               />
             </motion.div>
             <motion.div
@@ -105,6 +131,7 @@ const VideoView = () => {
                 transcription={transcription}
                 segments={transcriptSegments}
                 isLoading={loading}
+                onTranscriptEdit={handleTranscriptEdit}
               />
             </motion.div>
           </motion.div>

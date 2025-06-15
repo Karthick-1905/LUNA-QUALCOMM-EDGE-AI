@@ -1,10 +1,44 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 
-export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName }) {
+export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName, customAudioUrl }) {
     const [dragActive, setDragActive] = useState(false)
     const [uploading, setUploading] = useState(false)
     const inputRef = useRef(null)
+    const videoRef = useRef(null)
+    const audioRef = useRef(null)
+
+    // Improved sync for custom audio
+    useEffect(() => {
+        if (!customAudioUrl || !videoRef.current || !audioRef.current) return;
+        const video = videoRef.current;
+        const audio = audioRef.current;
+        // Sync play/pause
+        const syncPlay = () => {
+            audio.currentTime = video.currentTime;
+            audio.play();
+        };
+        const syncPause = () => { audio.pause(); };
+        const syncTime = () => {
+            if (Math.abs(audio.currentTime - video.currentTime) > 0.1) {
+                audio.currentTime = video.currentTime;
+            }
+        };
+        const syncSeeked = () => {
+            audio.currentTime = video.currentTime;
+        };
+        video.addEventListener('play', syncPlay);
+        video.addEventListener('pause', syncPause);
+        video.addEventListener('timeupdate', syncTime);
+        video.addEventListener('seeked', syncSeeked);
+        // Cleanup
+        return () => {
+            video.removeEventListener('play', syncPlay);
+            video.removeEventListener('pause', syncPause);
+            video.removeEventListener('timeupdate', syncTime);
+            video.removeEventListener('seeked', syncSeeked);
+        };
+    }, [customAudioUrl]);
 
     const handleDrag = (e) => {
         e.preventDefault()
@@ -116,14 +150,26 @@ export default function VideoUpload({ onVideoUpload, uploadedVideo, fileName }) 
                                 Upload New
                             </button>
                         </div>
-                        <video 
-                            src={uploadedVideo} 
-                            controls 
-                            className="w-full rounded-md bg-black" 
-                            style={{ maxHeight: "calc(100vh - 200px)" }}
-                        >
-                            Your browser does not support the video tag.
-                        </video>
+                        <div style={{ position: 'relative' }}>
+                            <video 
+                                ref={videoRef}
+                                src={uploadedVideo} 
+                                controls 
+                                muted={!!customAudioUrl}
+                                className="w-full rounded-md bg-black" 
+                                style={{ maxHeight: "calc(100vh - 200px)" }}
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                            {customAudioUrl && (
+                                <audio
+                                    ref={audioRef}
+                                    src={customAudioUrl}
+                                    controls // show controls for debugging
+                                    style={{ width: '100%', marginTop: 8 }}
+                                />
+                            )}
+                        </div>
                         <p className="text-sm text-zinc-400 mt-2">{fileName}</p>
                     </div>
                 </motion.div>

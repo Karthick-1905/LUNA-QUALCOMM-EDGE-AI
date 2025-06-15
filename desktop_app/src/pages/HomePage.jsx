@@ -247,8 +247,8 @@ export default function HomePage() {
                   </p>
                  </div>                <div className="flex flex-col gap-2 min-[400px]:flex-row"> 
                 
-                  <Button variant="outline" size="lg" className="h-12 bg-white text-black px-8 " onClick={handleImportFiles}>
-                    Import Files 📁
+                  <Button variant="outline" size="lg" className="h-12 bg-white text-black px-8 " onClick={() => navigate(ROUTES.EDITOR)}>
+                    Get started now !!!
                   </Button>
                 </div>
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground">

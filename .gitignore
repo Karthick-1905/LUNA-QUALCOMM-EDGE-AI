@@ -37,3 +37,5 @@ backend/.venv
 /**/config.yaml
 backend/assests
 backend/services/tts_output/*
+backend/tts_output/*
+

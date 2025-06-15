@@ -17,9 +17,11 @@ import {
   Eye,
   Heart,
   Coffee,
-  X
+  X,
+  MessageSquare,
+  Send
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '../../utils';
 
 function CollapsibleSection({ title, icon: Icon, children, defaultOpen = true, className }) {
@@ -78,12 +80,154 @@ function ProgressBar({ value, max, color = "bg-blue-500" }) {
   );
 }
 
+function ChatbotDialog({ open, onClose, transcript }) {
+  const [summary, setSummary] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [language, setLanguage] = useState("English");
+  const messagesEndRef = useRef(null);
+
+  const languageOptions = [
+    { label: "English", value: "English" },
+    { label: "Hindi", value: "Hindi" },
+    { label: "Tamil", value: "Tamil" },
+    { label: "Kannada", value: "Kannada" },
+  ];
+
+  const fetchSummary = (lang) => {
+    if (!transcript) {
+      setSummary("");
+      setError("No transcript available to summarize.");
+      return;
+    }
+    setLoading(true);
+    setSummary("");
+    setError("");
+    fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: transcript, language: lang })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setSummary(data.summary || "No summary returned.");
+      })
+      .catch(() => setError("Failed to fetch summary."))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (open) fetchSummary(language);
+    // eslint-disable-next-line
+  }, [open]);
+
+  useEffect(() => {
+    if (open) fetchSummary(language);
+    // eslint-disable-next-line
+  }, [language]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      <div className="w-80 h-96 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 bg-zinc-900  text-white rounded-t-lg">
+          <h3 className="text-sm font-medium">Summary</h3>
+          <button
+            onClick={onClose}
+            className="text-white hover:bg-blue-700 rounded p-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        {/* Language Dropdown */}
+        <div className="p-4 border-b border-gray-200 bg-zinc-900">
+          <label htmlFor="summary-language" className="block text-xs text-white mb-1">Select Language:</label>
+          <select
+            id="summary-language"
+            value={language}
+            onChange={e => setLanguage(e.target.value)}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-700  "
+          >
+            {languageOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        {/* Summary Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 bg-zinc-900 ">
+          {loading && (
+            <div className="text-gray-700">Generating summary...</div>
+          )}
+          {error && (
+            <div className="text-red-500">{error}</div>
+          )}
+          {!loading && !error && summary && (
+            <div className="bg-white text-gray-800 px-3 py-2 rounded-lg text-sm shadow-sm border border-gray-200 whitespace-pre-line">
+              {summary}
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function calculateTranscriptionMetrics(data) {
+  if (!data || !data.statistics) {
+    return {
+      totalDuration: 0,
+      speakerCount: 0,
+      totalWords: 0,
+      totalSegments: 0,
+      averageConfidence: 0,
+      averageWordsPerMinute: 0,
+      speakerMetrics: {}
+    };
+  }
+
+  const stats = data.statistics;
+  const speakingTimes = stats.speaker_speaking_times;
+  const wordCounts = stats.speaker_word_counts;
+
+  const totalDuration = Object.values(speakingTimes).reduce((sum, time) => sum + time, 0);
+
+  const speakerMetrics = {};
+  stats.speakers_list.forEach(speakerId => {
+    const duration = speakingTimes[speakerId] || 0;
+    const wordCount = wordCounts[speakerId] || 0;
+    
+    speakerMetrics[speakerId] = {
+      duration,
+      wordCount,
+      wordsPerMinute: duration > 0 ? (wordCount / duration) * 60 : 0,
+      participationPercentage: (duration / totalDuration) * 100
+    };
+  });
+
+
+  const totalWords = stats.total_words;
+  const averageWordsPerMinute = totalDuration > 0 ? (totalWords / totalDuration) * 60 : 0;
+
+  return {
+    totalDuration,
+    speakerCount: stats.total_speakers,
+    totalWords,
+    totalSegments: stats.speakers_list.length,
+    averageConfidence: 1, 
+    averageWordsPerMinute,
+    speakerMetrics
+  };
+}
+
+
 export default function RightSidebar({
   speakers,
   speakerStats,
-  transcription,
   isOpen = true,
   onClose,
+  transcriptionData,
 }) {
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -105,15 +249,21 @@ export default function RightSidebar({
     return speakerStats.reduce((total, stat) => total + (stat.wordsPerMinute * (stat.totalTime / 60)), 0);
   };
 
-  // If transcription.statistics exists, use it for analytics
-  const stats = transcription?.statistics;
+  const metrics = calculateTranscriptionMetrics(transcriptionData);
 
+  const stats = transcriptionData?.statistics || {};
 
+  const [showChatbot, setShowChatbot] = useState(false);
+
+  // Get transcript text for summary
+  const transcriptText = transcriptionData?.transcription?.segments
+    ? transcriptionData?.transcription.segments.map(seg => seg.text).join(' ')
+    : '';
 
   if (!isOpen) return null;
 
   return (
-    <div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden">
+<div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden">
       {/* Header with Close Button */}
       <div className="p-4 border-b border-zinc-800 bg-gradient-to-br from-zinc-900/50 to-zinc-800/30">
         <div className="flex items-center justify-between">
@@ -122,7 +272,11 @@ export default function RightSidebar({
             <p className="text-xs text-zinc-400 mt-1">Real-time insights and project metrics</p>
           </div>
           {onClose && (
-            <button onClick={onClose} className="text-zinc-400 hover:text-white p-1 rounded">
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+              title="Close panel"
+            >
               <X className="w-4 h-4" />
             </button>
           )}
@@ -137,38 +291,63 @@ export default function RightSidebar({
             <MetricCard 
               icon={Clock} 
               label="Duration" 
-              value={formatTime(getTotalDuration())} 
+              value={formatTime(metrics.totalDuration)} 
               color="text-blue-400"
             />
             <MetricCard 
               icon={Users} 
               label="Speakers" 
-              value={speakers.length} 
+              value={metrics.speakerCount} 
               color="text-purple-400"
             />
             <MetricCard 
               icon={BookOpen} 
-              label="Words" 
-              value={Math.round(getTotalWords())} 
+              label="Total Words" 
+              value={metrics.totalWords.toLocaleString()} 
               color="text-green-400"
-              align="center"
+            />
+            <MetricCard 
+              icon={MessageSquare} 
+              label="Segments" 
+              value={metrics.totalSegments} 
+              color="text-orange-400"
             />
           </div>
           
-          <div className="bg-zinc-800/40 rounded-lg p-3 border border-zinc-700/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Gauge className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm text-white font-medium">Confidence Score</span>
-            </div>
-            <div className="flex items-center gap-3">
+          {/* Add new metrics displays */}
+          <div className="space-y-3">
+            <div className="bg-zinc-800/40 rounded-lg p-3 border border-zinc-700/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm text-white font-medium">Overall Confidence</span>
+                </div>
+                <span className="text-sm text-white font-mono">
+                  {Math.round(metrics.averageConfidence * 100)}%
+                </span>
+              </div>
               <ProgressBar 
-                value={getAverageConfidence() * 100} 
+                value={metrics.averageConfidence * 100} 
                 max={100} 
                 color="bg-gradient-to-r from-cyan-500 to-blue-500"
               />
-              <span className="text-sm text-white font-mono">
-                {Math.round(getAverageConfidence() * 100)}%
-              </span>
+            </div>
+
+            <div className="bg-zinc-800/40 rounded-lg p-3 border border-zinc-700/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-white font-medium">Average Speech Rate</span>
+                </div>
+                <span className="text-sm text-white font-mono">
+                  {Math.round(metrics.averageWordsPerMinute)} WPM
+                </span>
+              </div>
+              <ProgressBar 
+                value={metrics.averageWordsPerMinute} 
+                max={200} 
+                color="bg-gradient-to-r from-green-500 to-emerald-500"
+              />
             </div>
           </div>
         </CollapsibleSection>
@@ -243,57 +422,26 @@ export default function RightSidebar({
             })}
           </div>        </CollapsibleSection>
 
-        {/* Speaker Stats Section */}
-        <CollapsibleSection title="Speaker Stats" icon={Users} defaultOpen>
-          {stats ? (
-            <div>
-              <div className="mb-2 text-xs text-zinc-400">Total Speakers: {stats.total_speakers}</div>
-              <div className="mb-2 text-xs text-zinc-400">Total Words: {stats.total_words}</div>
-              <div className="mb-2 text-xs text-zinc-400">Speaker Word Counts:</div>
-              <ul className="mb-2">
-                {Object.entries(stats.speaker_word_counts).map(([speaker, count]) => (
-                  <li key={speaker} className="flex justify-between">
-                    <span className="font-semibold text-blue-400">{speaker}</span>
-                    <span>{count} words</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mb-2 text-xs text-zinc-400">Speaker Speaking Times:</div>
-              <ul>
-                {Object.entries(stats.speaker_speaking_times).map(([speaker, time]) => (
-                  <li key={speaker} className="flex justify-between">
-                    <span className="font-semibold text-green-400">{speaker}</span>
-                    <span>{formatTime(time)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="text-zinc-400 text-xs">No analytics available.</div>
-          )}
-        </CollapsibleSection>
+
 
         {/* Quick Actions */}
-        <CollapsibleSection title="Quick Actions" icon={Coffee} defaultOpen={false}>
+        {/* <CollapsibleSection title="Quick Actions" icon={Coffee} defaultOpen={false}> */}
           <div className="space-y-3">
-            <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg p-3 text-sm font-medium transition-all transform hover:scale-[1.02]">
-              <div className="flex items-center gap-2 justify-center">
-                <Palette className="w-4 h-4" />
-                <span>Auto-Color Speakers</span>
-              </div>
-            </button>
-            
-            <button className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white rounded-lg p-3 text-sm font-medium transition-all transform hover:scale-[1.02]">
+            <button
+              className="w-full bg-gray hover:from-green-700 hover:to-teal-700 text-white rounded-lg p-3 text-sm font-medium transition-all transform hover:scale-[1.02]"
+              onClick={() => setShowChatbot(true)}
+            >
               <div className="flex items-center gap-2 justify-center">
                 <Activity className="w-4 h-4" />
                 <span>Generate Summary</span>
               </div>
             </button>
-            
-      
           </div>
-        </CollapsibleSection>
+        {/* </CollapsibleSection> */}
       </div>
+      {showChatbot && (
+        <ChatbotDialog open={showChatbot} onClose={() => setShowChatbot(false)} transcript={transcriptText} />
+      )}
     </div>
   );
 }

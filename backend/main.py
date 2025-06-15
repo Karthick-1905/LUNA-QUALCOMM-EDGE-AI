@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from concurrent.futures import ThreadPoolExecutor
 import tempfile
 import os
@@ -133,8 +133,9 @@ async def edit_transcript(transcript: TranscriptEdit):
     try:
         output_path = os.path.join(OUTPUT_DIR, "transcript-edited.json")
         save_to_json({"segments": transcript.segments}, output_path)
-        run_voice_cloning_service()
-        return JSONResponse(content={"status": "success", "message": "Transcript saved successfully"})
+        final_audio_path = run_voice_cloning_service()
+        # Serve the audio file directly
+        return FileResponse(final_audio_path, media_type="audio/wav", filename="final_edited_audio.wav")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save transcript: {str(e)}")
 @app.post("/analyze-video-path/")

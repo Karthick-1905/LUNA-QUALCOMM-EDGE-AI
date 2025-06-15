@@ -5,7 +5,9 @@ import { Edit3, Check, X, MessageSquare, Clock, Loader } from 'lucide-react';
 const VideoTranscriptEditor = ({ 
   transcription,
   segments: initialSegments,
-  isLoading
+  isLoading,
+  onTranscriptEdit,
+  onAudioGenerated // <-- new prop for parent callback
 }) => {
   // State for managing segments
   const [transcriptSegments, setTranscriptSegments] = useState([]);
@@ -13,6 +15,7 @@ const VideoTranscriptEditor = ({
   const [editText, setEditText] = useState('');
   const [currentTime, setCurrentTime] = useState(0);
   const [selectedSegment, setSelectedSegment] = useState(null);
+  const [updating, setUpdating] = useState(false);
   
   const scrollContainerRef = useRef(null);
   const activeSegmentRef = useRef(null);
@@ -88,7 +91,15 @@ const VideoTranscriptEditor = ({
   // Handle edit save
   const handleEditSave = () => {
     if (editingId && editText.trim() !== '') {
-      onSegmentEdit(editingId, editText.trim());
+      // Update the segment in transcriptSegments
+      const updatedSegments = transcriptSegments.map(seg =>
+        seg.id === editingId ? { ...seg, text: editText.trim() } : seg
+      );
+      setTranscriptSegments(updatedSegments);
+      // Call the callback with updated segments
+      if (onTranscriptEdit) {
+        onTranscriptEdit(updatedSegments);
+      }
     }
     setEditingId(null);
     setEditText('');
@@ -116,6 +127,27 @@ const VideoTranscriptEditor = ({
     }
   };
 
+  // Handler for Update Transcription button
+  const handleUpdateTranscription = async () => {
+    setUpdating(true);
+    try {
+      const response = await fetch('/api/edit-transcript/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segments: transcriptSegments })
+      });
+      if (!response.ok) throw new Error('Failed to update transcription');
+      const data = await response.json();
+      if (onAudioGenerated && data.audio_url) {
+        onAudioGenerated(data.audio_url);
+      }
+    } catch (err) {
+      alert('Failed to update transcription.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-zinc-900 rounded-lg">
       {/* Header */}
@@ -135,7 +167,15 @@ const VideoTranscriptEditor = ({
               `${transcriptSegments.length} segments`
             )}
           </div>
+          
         </div>
+        <button
+            className="mt-2 px-4 py-2 rounded bg-blue-600 w-full justify-around text-white hover:bg-blue-700 disabled:opacity-50"
+            onClick={handleUpdateTranscription}
+            disabled={updating}
+          >
+            {updating ? 'Updating...' : 'Update Transcription'}
+          </button>
         
         {/* Current time indicator */}
         <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
@@ -158,7 +198,7 @@ const VideoTranscriptEditor = ({
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <div className="text-center space-y-4">
             <Loader className="w-8 h-8 animate-spin mx-auto text-blue-500" />
             <p className="text-sm text-zinc-400">Processing video transcription...</p>
