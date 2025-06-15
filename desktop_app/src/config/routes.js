@@ -39,12 +39,7 @@ export const routeConfig = [
     component: 'EditorLayout',
     exact: false,
     children: [
-      {
-        path: ROUTES.EDITOR_VIDEO,
-        name: 'Video',
-        component: 'VideoView',
-        exact: true
-      },
+      
       {
         path: ROUTES.EDITOR_TRANSCRIPT,
         name: 'Transcript',

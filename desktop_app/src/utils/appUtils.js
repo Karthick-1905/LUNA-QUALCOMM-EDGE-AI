@@ -146,6 +146,38 @@ export const debounce = (func, wait) => {
   };
 };
 
+
+export const copyFileToAssets = async (
+  sourcePath,
+  assetsDir
+) => {
+  try {
+    // Create assets directory if it doesn't exist
+    await fs.mkdir(assetsDir, { recursive: true });
+
+    // Generate unique filename while preserving extension
+    const originalName = path.basename(sourcePath);
+    const extension = path.extname(sourcePath);
+    const fileName = `video_${Date.now()}${extension}`;
+    const destPath = path.join(assetsDir, fileName);
+
+    // Copy the file
+    await fs.copyFile(sourcePath, destPath);
+
+    // Verify file was copied successfully
+    await fs.access(destPath);
+
+    return {
+      savedPath: destPath,
+      fileName,
+      originalName
+    };
+  } catch (error) {
+    console.error('Error copying file to assets:', error);
+    throw new Error(`Failed to copy file to assets: ${error.message}`);
+  }
+};
+
 // Theme utilities
 export const getThemeClasses = (isDark) => {
   return {
