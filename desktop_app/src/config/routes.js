@@ -2,7 +2,6 @@
 
 export const ROUTES = {
   HOME: '/',
-  PROJECTS: '/projects',
   EDITOR: '/editor',
   EDITOR_VIDEO: '/editor/video',
   EDITOR_TRANSCRIPT: '/editor/transcript',
